@@ -189,6 +189,74 @@ export default function CommunityScreen() {
     );
   };
 
+  const openGroupMenu = (g: Group, context: 'groups' | 'favorites') => {
+    setMenuGroup(g);
+    setMenuContext(context);
+  };
+
+  const confirmDeleteGroup = (g: Group) => {
+    Alert.alert('Delete group?', `Permanently delete "${g.name}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          if (!deleteGroup(g.id)) Alert.alert('Error', 'Only the group creator can delete this group.');
+        },
+      },
+    ]);
+  };
+
+  const confirmLeaveGroup = (g: Group) => {
+    Alert.alert('Leave group?', `Leave "${g.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Leave',
+        style: 'destructive',
+        onPress: () => {
+          if (!leaveGroup(g.id)) Alert.alert('Error', 'Could not leave this group.');
+        },
+      },
+    ]);
+  };
+
+  const buildMenuActions = (g: Group, context: 'groups' | 'favorites'): GroupMenuAction[] => {
+    const isCreator = session?.userId === g.creatorId;
+    const isFav = g.favoriteBy.includes(session?.userId ?? '');
+    const actions: GroupMenuAction[] = [];
+
+    if (context === 'favorites' && isFav) {
+      actions.push({
+        label: 'Remove from favorites',
+        onPress: () => toggleFavoriteGroup(g.id),
+      });
+    }
+
+    if (context === 'groups') {
+      if (isCreator) {
+        actions.push({
+          label: 'Delete group',
+          destructive: true,
+          onPress: () => confirmDeleteGroup(g),
+        });
+      } else {
+        actions.push({
+          label: 'Leave group',
+          destructive: true,
+          onPress: () => confirmLeaveGroup(g),
+        });
+      }
+    } else if (isCreator) {
+      actions.push({
+        label: 'Delete group',
+        destructive: true,
+        onPress: () => confirmDeleteGroup(g),
+      });
+    }
+
+    return actions;
+  };
+
     const renderGroup = (g: Group, context: 'groups' | 'favorites') => (
     <View key={g.id} style={styles.groupCard}>
       <View style={styles.groupTop}>
@@ -291,7 +359,7 @@ export default function CommunityScreen() {
       )}
       <GroupCardMenu
         visible={menuGroup !== null}
-        onClose={() => setMenuGroup(null)}
+        onClose={closeMenu}
         actions={menuGroup ? buildMenuActions(menuGroup, menuContext) : []}
       />
     </SafeAreaView>
