@@ -16,10 +16,11 @@ import { EmptyState } from '@/components/empty-state';
 import { GroupCardMenu, GroupMenuButton, type GroupMenuAction } from '@/components/group-card-menu';
 import { ScreenHeader } from '@/components/screen-header';
 import { SubTabs } from '@/components/sub-tabs';
+import { Palette } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useCommunity } from '@/context/community-context';
-import { Palette } from '@/constants/theme';
 import type { Group, Post } from '@/types/community';
+
 
 type Tab = 'home' | 'groups' | 'favorites';
 
@@ -44,7 +45,7 @@ export default function CommunityScreen() {
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
 
-  const onJoin = () => {
+    const onJoin = () => {
     if (!joinId.trim()) return;
     const ok = joinGroup(joinId.trim());
     if (ok) {
@@ -53,7 +54,88 @@ export default function CommunityScreen() {
     } else Alert.alert('Not found', 'Invalid Group ID or already a member.');
   };
 
-  const renderPost = ({ item }: { item: Post }) => {
+  const openGroupMenu = (g: Group, context: 'groups' | 'favorites') => {
+    setMenuGroup(g);
+    setMenuContext(context);
+  };
+
+  const confirmDeleteGroup = (g: Group) => {
+    Alert.alert('Delete group?', `Permanently delete "${g.name}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          if (deleteGroup(g.id)) {
+            setMenuGroup(null);
+            Alert.alert('Success', 'Group deleted.');
+          } else {
+            Alert.alert('Error', 'Only the group creator can delete this group.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const confirmLeaveGroup = (g: Group) => {
+    Alert.alert('Leave group?', `Leave "${g.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Leave',
+        style: 'destructive',
+        onPress: () => {
+          if (leaveGroup(g.id)) {
+            setMenuGroup(null);
+            Alert.alert('Success', 'You left the group.');
+          } else {
+            Alert.alert('Error', 'Could not leave this group.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const buildMenuActions = (g: Group, context: 'groups' | 'favorites'): GroupMenuAction[] => {
+    const isCreator = session?.userId === g.creatorId;
+    const isFav = g.favoriteBy.includes(session?.userId ?? '');
+    const actions: GroupMenuAction[] = [];
+
+    if (context === 'favorites' && isFav) {
+      actions.push({
+        label: 'Remove from favorites',
+        onPress: () => {
+          toggleFavoriteGroup(g.id);
+          setMenuGroup(null);
+        },
+      });
+    }
+
+    if (context === 'groups') {
+      if (isCreator) {
+        actions.push({
+          label: 'Delete group',
+          destructive: true,
+          onPress: () => confirmDeleteGroup(g),
+        });
+      } else {
+        actions.push({
+          label: 'Leave group',
+          destructive: true,
+          onPress: () => confirmLeaveGroup(g),
+        });
+      }
+    } else if (context === 'favorites' && isCreator) {
+      actions.push({
+        label: 'Delete group',
+        destructive: true,
+        onPress: () => confirmDeleteGroup(g),
+      });
+    }
+
+    return actions;
+  };
+
+    const renderPost = ({ item }: { item: Post }) => {
     const liked = session ? item.likes.includes(session.userId) : false;
     return (
       <View style={styles.post}>
@@ -107,75 +189,7 @@ export default function CommunityScreen() {
     );
   };
 
-  const openGroupMenu = (g: Group, context: 'groups' | 'favorites') => {
-    setMenuGroup(g);
-    setMenuContext(context);
-  };
-
-  const confirmDeleteGroup = (g: Group) => {
-    Alert.alert('Delete group?', `Permanently delete "${g.name}"? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          if (!deleteGroup(g.id)) Alert.alert('Error', 'Only the group creator can delete this group.');
-        },
-      },
-    ]);
-  };
-
-  const confirmLeaveGroup = (g: Group) => {
-    Alert.alert('Leave group?', `Leave "${g.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Leave',
-        style: 'destructive',
-        onPress: () => {
-          if (!leaveGroup(g.id)) Alert.alert('Error', 'Could not leave this group.');
-        },
-      },
-    ]);
-  };
-
-  const buildMenuActions = (g: Group, context: 'groups' | 'favorites'): GroupMenuAction[] => {
-    const isCreator = session?.userId === g.creatorId;
-    const isFav = g.favoriteBy.includes(session?.userId ?? '');
-    const actions: GroupMenuAction[] = [];
-
-    if (context === 'favorites' && isFav) {
-      actions.push({
-        label: 'Remove from favorites',
-        onPress: () => toggleFavoriteGroup(g.id),
-      });
-    }
-
-    if (context === 'groups') {
-      if (isCreator) {
-        actions.push({
-          label: 'Delete group',
-          destructive: true,
-          onPress: () => confirmDeleteGroup(g),
-        });
-      } else {
-        actions.push({
-          label: 'Leave group',
-          destructive: true,
-          onPress: () => confirmLeaveGroup(g),
-        });
-      }
-    } else if (isCreator) {
-      actions.push({
-        label: 'Delete group',
-        destructive: true,
-        onPress: () => confirmDeleteGroup(g),
-      });
-    }
-
-    return actions;
-  };
-
-  const renderGroup = (g: Group, context: 'groups' | 'favorites') => (
+    const renderGroup = (g: Group, context: 'groups' | 'favorites') => (
     <View key={g.id} style={styles.groupCard}>
       <View style={styles.groupTop}>
         <Pressable

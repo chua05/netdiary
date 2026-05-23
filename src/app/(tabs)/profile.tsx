@@ -21,9 +21,9 @@ export default function ProfileScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-        await logout();
-        router.replace('/(auth)/welcome');
-      },
+          await logout();
+          router.replace('/(auth)/welcome');
+        },
       },
     ]);
   };

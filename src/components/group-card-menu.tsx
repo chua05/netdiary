@@ -1,6 +1,6 @@
 import { SymbolView } from 'expo-symbols';
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text } from 'react-native';
 
 import { Palette } from '@/constants/theme';
 
@@ -27,7 +27,6 @@ export function GroupCardMenu({ visible, onClose, actions }: Props) {
               style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
               onPress={() => {
                 action.onPress();
-                onClose();
               }}>
               <Text style={[styles.optionText, action.destructive && styles.destructive]}>
                 {action.label}
