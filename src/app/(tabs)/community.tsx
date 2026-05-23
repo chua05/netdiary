@@ -112,6 +112,10 @@ export default function CommunityScreen() {
     setMenuContext(context);
   };
 
+  const closeMenu = () => {
+    setMenuGroup(null);
+  };
+
   const confirmDeleteGroup = (g: Group) => {
     Alert.alert('Delete group?', `Permanently delete "${g.name}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -119,7 +123,13 @@ export default function CommunityScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          if (!deleteGroup(g.id)) Alert.alert('Error', 'Only the group creator can delete this group.');
+          const deleted = deleteGroup(g.id);
+          if (deleted) {
+            closeMenu();
+            Alert.alert('Success', 'Group deleted.');
+          } else {
+            Alert.alert('Error', 'Only the group creator can delete this group.');
+          }
         },
       },
     ]);
@@ -132,7 +142,13 @@ export default function CommunityScreen() {
         text: 'Leave',
         style: 'destructive',
         onPress: () => {
-          if (!leaveGroup(g.id)) Alert.alert('Error', 'Could not leave this group.');
+          const left = leaveGroup(g.id);
+          if (left) {
+            closeMenu();
+            Alert.alert('Success', 'You left the group.');
+          } else {
+            Alert.alert('Error', 'Could not leave this group.');
+          }
         },
       },
     ]);
@@ -146,7 +162,10 @@ export default function CommunityScreen() {
     if (context === 'favorites' && isFav) {
       actions.push({
         label: 'Remove from favorites',
-        onPress: () => toggleFavoriteGroup(g.id),
+        onPress: () => {
+          toggleFavoriteGroup(g.id);
+          closeMenu();
+        },
       });
     }
 
@@ -164,7 +183,7 @@ export default function CommunityScreen() {
           onPress: () => confirmLeaveGroup(g),
         });
       }
-    } else if (isCreator) {
+    } else if (context === 'favorites' && isCreator) {
       actions.push({
         label: 'Delete group',
         destructive: true,
@@ -277,7 +296,7 @@ export default function CommunityScreen() {
       )}
       <GroupCardMenu
         visible={menuGroup !== null}
-        onClose={() => setMenuGroup(null)}
+        onClose={closeMenu}
         actions={menuGroup ? buildMenuActions(menuGroup, menuContext) : []}
       />
     </SafeAreaView>
